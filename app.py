@@ -11,7 +11,7 @@ model = artifacts['model']
 scaler = artifacts['scaler']
 encoded_columns = artifacts['encoded_columns']
 feature_names = artifacts['feature_names']
-num_cols = artifacts['num_cols']
+num_bounds = artifacts['num_bounds']
 cat_options = artifacts['cat_options']
 
 # Header Section
@@ -22,27 +22,43 @@ to predict potential supply chain risks based on supplier attributes.
 """)
 st.divider()
 
-# User Input Form with Drop-downs and Number Inputs
+# User Input Form with Drop-downs and Bounded Numeric Inputs
 st.subheader("1. Select Supplier Attributes")
 
 user_inputs = {}
-cols = st.columns(3)  # Organize inputs cleanly into 3 columns
+cols = st.columns(3)
 
 for i, col_name in enumerate(feature_names):
     with cols[i % 3]:
         if col_name in cat_options:
-            # Create a Drop-down menu for categorical variables
+            # Drop-down menu restricted strictly to values present in the dataset
             user_inputs[col_name] = st.selectbox(
                 label=f"{col_name}",
                 options=cat_options[col_name]
             )
         else:
-            # Create a numeric input box for numerical variables
-            user_inputs[col_name] = st.number_input(
-                label=f"{col_name}",
-                value=0.0,
-                step=1.0
-            )
+            # Numeric input showing and enforcing exact Min and Max values from the dataset
+            bounds = num_bounds[col_name]
+            min_val = bounds['min']
+            max_val = bounds['max']
+            default_val = bounds['median']
+
+            if bounds['is_int']:
+                user_inputs[col_name] = st.number_input(
+                    label=f"{col_name} (Min: {int(min_val)}, Max: {int(max_val)})",
+                    min_value=int(min_val),
+                    max_value=int(max_val),
+                    value=int(default_val),
+                    step=1
+                )
+            else:
+                user_inputs[col_name] = st.number_input(
+                    label=f"{col_name} (Min: {min_val:.2f}, Max: {max_val:.2f})",
+                    min_value=float(min_val),
+                    max_value=float(max_val),
+                    value=float(default_val),
+                    step=0.1
+                )
 
 st.divider()
 
@@ -59,8 +75,8 @@ if st.button("Predict Supply Risk", type="primary", use_container_width=True):
     input_scaled = scaler.transform(input_encoded)
 
     # Make prediction and get probabilities
-    prediction = model.predict(input_scaled)[0]
-    probabilities = model.predict_proba(input_scaled)[0]
+    prediction = model.predict(input_scaled)
+    probabilities = model.predict_proba(input_scaled)
 
     # Display Result
     st.subheader("2. Prediction Outcome")
