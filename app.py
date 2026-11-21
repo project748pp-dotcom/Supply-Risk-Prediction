@@ -179,8 +179,11 @@ st.divider()
 
 if st.button("Predict Supply Risk", type="primary", use_container_width=True):
     input_df = pd.DataFrame([user_inputs])
-    input_encoded = pd.get_dummies(input_df, drop_first=True)
+
+    # CRITICAL FIX: Do NOT use drop_first=True on a single row, otherwise the selected value gets dropped!
+    input_encoded = pd.get_dummies(input_df, drop_first=False)
     input_encoded = input_encoded.reindex(columns=encoded_columns, fill_value=0)
+
     input_scaled = scaler.transform(input_encoded)
 
     pred_code = str(model.predict(input_scaled)[0])
